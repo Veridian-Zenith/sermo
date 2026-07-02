@@ -1,27 +1,39 @@
-# The directory Mix will write compiled artifacts to.
+# Elixir / Mix
 /_build/
-
-# If you run "mix test --cover", coverage assets end up here.
 /cover/
-
-# The directory Mix downloads your dependencies sources to.
 /deps/
-
-# Where 3rd-party dependencies like ExDoc output generated docs.
 /doc/
-
-# Ignore .fetch files in case you like to edit your project deps locally.
 /.fetch
+erlang.mk
+*.ez
+*.tar
 
-# If the VM crashes, it generates a dump, let's ignore it too.
+# BEAM VM
 erl_crash.dump
 
-# Also ignore archive artifacts (built via "mix archive.build").
-*.ez
+# AI agent guidelines
+AGENTS.md
 
-# Temporary files, for example, from tests.
+# Editor / OS
+.DS_Store
+*~
+*.swp
+*.swo
+*.bak
+
+# Environment
+.env
+.env.*
+
+# IDE project config
+.idea/
+.vscode/
+*.iml
+
+# Dialyzer
+priv/plts/
+*.plt
+*.plt.hash
+
+# Temp files
 /tmp/
-
-# Ignore package tarball (built via "mix hex.build").
-sermo-*.tar
-
