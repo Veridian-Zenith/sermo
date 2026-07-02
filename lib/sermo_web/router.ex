@@ -36,6 +36,15 @@ defmodule SermoWeb.Router do
     get "/logout", SessionController, :delete
     live "/chat", ChatLive, :index
     live "/conversations/new", NewConversationLive, :index
+    live "/profile", ProfileLive, :index
+  end
+
+  scope "/api/v1", SermoWeb.API, as: :api do
+    pipe_through :api
+
+    post "/register", RegistrationController, :create
+    post "/session", SessionController, :create
+    delete "/session", SessionController, :delete
   end
 
   if Application.compile_env(:sermo, :dev_routes) do

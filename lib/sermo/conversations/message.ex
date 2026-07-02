@@ -19,4 +19,11 @@ defmodule Sermo.Conversations.Message do
     |> validate_required([:body, :conversation_id, :sender_id])
     |> validate_length(:body, min: 1, max: 4096)
   end
+
+  def update_changeset(message, attrs) do
+    message
+    |> cast(attrs, [:body])
+    |> validate_required([:body])
+    |> validate_length(:body, min: 1, max: 4096)
+  end
 end

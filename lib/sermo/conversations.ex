@@ -57,6 +57,10 @@ defmodule Sermo.Conversations do
     end)
   end
 
+  def get_conversation(id) do
+    Repo.get(Conversation, id) |> Repo.preload(members: :user)
+  end
+
   def list_conversations(user_id) do
     conversation_ids =
       Repo.all(
@@ -73,13 +77,89 @@ defmodule Sermo.Conversations do
     |> Repo.preload(members: :user)
   end
 
+  def list_members(conversation_id) do
+    Repo.all(
+      from cm in ConversationMember,
+        where: cm.conversation_id == ^conversation_id,
+        preload: [:user]
+    )
+  end
+
+  def is_member?(user_id, conversation_id) do
+    Repo.exists?(
+      from cm in ConversationMember,
+        where: cm.user_id == ^user_id and cm.conversation_id == ^conversation_id
+    )
+  end
+
+  def add_members(conversation_id, member_ids) do
+    Repo.insert_all(
+      ConversationMember,
+      Enum.map(member_ids, fn user_id ->
+        %{
+          user_id: user_id,
+          conversation_id: conversation_id,
+          role: "member",
+          inserted_at: DateTime.utc_now() |> DateTime.truncate(:second),
+          updated_at: DateTime.utc_now() |> DateTime.truncate(:second)
+        }
+      end)
+    )
+  end
+
+  def remove_member(conversation_id, user_id) do
+    Repo.delete_all(
+      from cm in ConversationMember,
+        where: cm.conversation_id == ^conversation_id and cm.user_id == ^user_id
+    )
+  end
+
+  def delete_conversation(conversation_id) do
+    Repo.delete_all(from m in Message, where: m.conversation_id == ^conversation_id)
+    Repo.delete_all(from cm in ConversationMember, where: cm.conversation_id == ^conversation_id)
+    Repo.delete_all(from c in Conversation, where: c.id == ^conversation_id)
+    :ok
+  end
+
   def send_message(conversation_id, sender_id, body) do
     %Message{}
     |> Message.changeset(%{body: body, conversation_id: conversation_id, sender_id: sender_id})
     |> Repo.insert()
     |> case do
-      {:ok, msg} -> {:ok, Repo.preload(msg, :sender)}
-      error -> error
+      {:ok, msg} ->
+        msg = Repo.preload(msg, :sender)
+        broadcast_new_message(msg)
+        {:ok, msg}
+
+      error ->
+        error
+    end
+  end
+
+  def update_message(message_id, sender_id, attrs) do
+    message = Repo.get!(Message, message_id)
+
+    if message.sender_id == sender_id do
+      message
+      |> Message.update_changeset(attrs)
+      |> Repo.update()
+      |> case do
+        {:ok, msg} -> {:ok, Repo.preload(msg, :sender)}
+        error -> error
+      end
+    else
+      {:error, :not_authorized}
+    end
+  end
+
+  def delete_message(message_id, sender_id) do
+    message = Repo.get!(Message, message_id)
+
+    if message.sender_id == sender_id do
+      Repo.delete!(message)
+      {:ok, message}
+    else
+      {:error, :not_authorized}
     end
   end
 
@@ -91,6 +171,49 @@ defmodule Sermo.Conversations do
         limit: ^limit,
         preload: [:sender]
     )
+  end
+
+  def enrich_conversations(conversations, current_user_id) do
+    Enum.map(conversations, fn conv ->
+      display_name =
+        if conv.type == "direct" do
+          other = Enum.find(conv.members, fn m -> m.user_id != current_user_id end)
+
+          if other && other.user do
+            other.user.display_name || other.user.username
+          else
+            "Unknown"
+          end
+        else
+          conv.name || "Group"
+        end
+
+      %{conv | display_name: display_name}
+    end)
+  end
+
+  def broadcast_new_message(msg) do
+    members = list_members(msg.conversation_id)
+
+    for member <- members do
+      Phoenix.PubSub.broadcast(
+        Sermo.PubSub,
+        "user:#{member.user_id}",
+        {:new_message, msg}
+      )
+    end
+  end
+
+  def broadcast_conversation_update(conv) do
+    conv = if Ecto.assoc_loaded?(conv.members), do: conv, else: Repo.preload(conv, :members)
+
+    for member <- conv.members do
+      Phoenix.PubSub.broadcast(
+        Sermo.PubSub,
+        "user:#{member.user_id}",
+        {:conversation_updated, conv.id}
+      )
+    end
   end
 
   defp find_direct_conversation(user1_id, user2_id) do
@@ -105,16 +228,5 @@ defmodule Sermo.Conversations do
       member_ids = Enum.map(conv.members, & &1.user_id) |> MapSet.new()
       member_ids == user_ids
     end)
-  end
-
-  def list_members(conversation_id) do
-    Repo.all(from cm in ConversationMember, where: cm.conversation_id == ^conversation_id)
-  end
-
-  def is_member?(user_id, conversation_id) do
-    Repo.exists?(
-      from cm in ConversationMember,
-        where: cm.user_id == ^user_id and cm.conversation_id == ^conversation_id
-    )
   end
 end

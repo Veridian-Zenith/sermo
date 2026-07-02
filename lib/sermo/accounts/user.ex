@@ -27,6 +27,20 @@ defmodule Sermo.Accounts.User do
     |> hash_password()
   end
 
+  def profile_changeset(user, attrs) do
+    user
+    |> cast(attrs, [:display_name])
+    |> validate_length(:display_name, max: 64)
+  end
+
+  def password_changeset(user, attrs) do
+    user
+    |> cast(attrs, [:password])
+    |> validate_required([:password])
+    |> validate_length(:password, min: 6, max: 128)
+    |> hash_password()
+  end
+
   defp hash_password(changeset) do
     case changeset do
       %Ecto.Changeset{valid?: true, changes: %{password: pass}} ->

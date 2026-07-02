@@ -6,8 +6,8 @@ defmodule SermoWeb.NewConversationLive do
 
   def mount(_params, session, socket) do
     current_user = Accounts.get_user(session["user_id"])
-    users = list_users(current_user.id)
-    form = to_form(%{"type" => "direct", "name" => "", "other_user_id" => ""}, as: :conv)
+    users = Accounts.list_other_users(current_user.id)
+    form = to_form(%{"type" => "direct", "name" => "", "member_ids" => []}, as: :conv)
 
     {:ok,
      assign(socket,
@@ -15,7 +15,8 @@ defmodule SermoWeb.NewConversationLive do
        users: users,
        filtered_users: users,
        form: form,
-       search: ""
+       search: "",
+       selected_ids: MapSet.new()
      )}
   end
 
@@ -31,14 +32,14 @@ defmodule SermoWeb.NewConversationLive do
           <.form for={@form} id="conv-form" phx-submit="create" class="space-y-4 p-8 card">
             <div>
               <label class="label">Type</label>
-              <select name="conv[type]" class="select-field mt-1">
-                <option value="direct">Direct Message</option>
-                <option value="group">Group</option>
+              <select name="conv[type]" id="conv_type" class="select-field mt-1" phx-change="change-type">
+                <option value="direct" selected={@form[:type].value == "direct"}>Direct Message</option>
+                <option value="group" selected={@form[:type].value == "group"}>Group</option>
               </select>
             </div>
-            <div>
+            <div :if={@form[:type].value == "group"}>
               <label for="name" class="label">Group Name</label>
-              <input type="text" name="conv[name]" id="name" placeholder="only for groups"
+              <input type="text" name="conv[name]" id="name" placeholder="name this group"
                 class="input-field mt-1" />
             </div>
             <div>
@@ -48,12 +49,25 @@ defmodule SermoWeb.NewConversationLive do
                 class="input-field mt-1" />
             </div>
             <div>
-              <label for="other_user_id" class="label">Select User</label>
-              <select name="conv[other_user_id]" id="other_user_id" size={min(5, length(@filtered_users))}
-                class="select-field mt-1">
-                <option value="">select a user...</option>
-                <option :for={u <- @filtered_users} value={u.id}><%= u.display_name || u.username %></option>
-              </select>
+              <label class="label"><%= if @form[:type].value == "group", do: "Select Members", else: "Select User" %></label>
+              <div class="mt-1 max-h-48 overflow-y-auto space-y-1 border border-[var(--vz-border-color)] rounded-xl p-2">
+                <div :for={u <- @filtered_users} class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-accent-subtle transition-fast cursor-pointer"
+                  phx-click="toggle-user" phx-value-id={u.id}>
+                  <input type={if @form[:type].value == "direct", do: "radio", else: "checkbox"}
+                    name={if @form[:type].value == "direct", do: "conv[member_ids]", else: "conv[member_ids][]"}
+                    value={u.id}
+                    checked={u.id in @selected_ids}
+                    class="accent-[var(--vz-accent-vibrant)] cursor-pointer" />
+                  <span class="text-sm text-white"><%= u.display_name || u.username %></span>
+                  <span :if={u.display_name} class="text-xs text-muted ml-auto">@<%= u.username %></span>
+                </div>
+                <div :if={@filtered_users == []} class="text-xs text-muted text-center py-2">
+                  no users found
+                </div>
+              </div>
+            </div>
+            <div :if={@form[:type].value == "group" && MapSet.size(@selected_ids) > 0} class="text-xs text-muted">
+              <%= MapSet.size(@selected_ids) %> user(s) selected
             </div>
             <button type="submit" class="btn btn-primary w-full py-3 rounded-xl text-sm">
               Create
@@ -63,6 +77,11 @@ defmodule SermoWeb.NewConversationLive do
       </div>
     </Layouts.app>
     """
+  end
+
+  def handle_event("change-type", %{"conv" => %{"type" => type}}, socket) do
+    form = to_form(%{"type" => type, "name" => socket.assigns.form[:name].value || "", "member_ids" => []}, as: :conv)
+    {:noreply, assign(socket, form: form, selected_ids: MapSet.new())}
   end
 
   def handle_event("search-users", %{"search" => search}, socket) do
@@ -77,17 +96,33 @@ defmodule SermoWeb.NewConversationLive do
     {:noreply, assign(socket, filtered_users: filtered, search: search)}
   end
 
+  def handle_event("toggle-user", %{"id" => id}, socket) do
+    selected = socket.assigns.selected_ids
+    type = socket.assigns.form[:type].value
+
+    selected =
+      if type == "direct" do
+        MapSet.new([id])
+      else
+        if MapSet.member?(selected, id), do: MapSet.delete(selected, id), else: MapSet.put(selected, id)
+      end
+
+    {:noreply, assign(socket, selected_ids: selected)}
+  end
+
   def handle_event("create", %{"conv" => params}, socket) do
     case params["type"] do
       "direct" ->
-        other_id = params["other_user_id"]
+        member_ids = socket.assigns.selected_ids |> MapSet.to_list()
 
-        if other_id == "" do
+        if member_ids == [] do
           {:noreply, put_flash(socket, :error, "Select a user")}
         else
+          other_id = hd(member_ids)
+
           case Conversations.create_direct_conversation(socket.assigns.current_user.id, other_id) do
             {:ok, conv} ->
-              notify_participants(conv)
+              Conversations.broadcast_conversation_update(conv)
               {:noreply, redirect(socket, to: ~p"/chat")}
 
             {:error, _} ->
@@ -97,48 +132,29 @@ defmodule SermoWeb.NewConversationLive do
 
       "group" ->
         name = params["name"]
+        member_ids = socket.assigns.selected_ids |> MapSet.to_list()
 
-        if name == "" do
-          {:noreply, put_flash(socket, :error, "Group needs a name")}
-        else
-          other_id = params["other_user_id"]
-          member_ids = if other_id == "", do: [], else: [other_id]
+        cond do
+          name == "" ->
+            {:noreply, put_flash(socket, :error, "Group needs a name")}
 
-          case Conversations.create_group_conversation(
-                 socket.assigns.current_user.id,
-                 name,
-                 member_ids
-               ) do
-            {:ok, conv} ->
-              notify_participants(conv)
-              {:noreply, redirect(socket, to: ~p"/chat")}
+          member_ids == [] ->
+            {:noreply, put_flash(socket, :error, "Select at least one member")}
 
-            {:error, _} ->
-              {:noreply, put_flash(socket, :error, "Could not create conversation")}
-          end
+          true ->
+            case Conversations.create_group_conversation(
+                   socket.assigns.current_user.id,
+                   name,
+                   member_ids
+                 ) do
+              {:ok, conv} ->
+                Conversations.broadcast_conversation_update(conv)
+                {:noreply, redirect(socket, to: ~p"/chat")}
+
+              {:error, _} ->
+                {:noreply, put_flash(socket, :error, "Could not create conversation")}
+            end
         end
-    end
-  end
-
-  defp list_users(current_user_id) do
-    import Ecto.Query
-
-    Sermo.Repo.all(
-      from u in Sermo.Accounts.User,
-        where: u.id != ^current_user_id,
-        order_by: u.username
-    )
-  end
-
-  defp notify_participants(conv) do
-    conv = Sermo.Repo.preload(conv, :members)
-
-    for member <- conv.members do
-      Phoenix.PubSub.broadcast(
-        Sermo.PubSub,
-        "user:#{member.user_id}",
-        {:conversation_updated, conv.id}
-      )
     end
   end
 end
