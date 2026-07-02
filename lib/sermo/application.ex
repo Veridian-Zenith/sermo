@@ -12,8 +12,7 @@ defmodule Sermo.Application do
       Sermo.Repo,
       {DNSCluster, query: Application.get_env(:sermo, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: Sermo.PubSub},
-      # Start a worker by calling: Sermo.Worker.start_link(arg)
-      # {Sermo.Worker, arg},
+      SermoWeb.Presence,
       # Start to serve requests, typically the last entry
       SermoWeb.Endpoint
     ]

@@ -80,7 +80,12 @@ defmodule SermoWeb.NewConversationLive do
   end
 
   def handle_event("change-type", %{"conv" => %{"type" => type}}, socket) do
-    form = to_form(%{"type" => type, "name" => socket.assigns.form[:name].value || "", "member_ids" => []}, as: :conv)
+    form =
+      to_form(
+        %{"type" => type, "name" => socket.assigns.form[:name].value || "", "member_ids" => []},
+        as: :conv
+      )
+
     {:noreply, assign(socket, form: form, selected_ids: MapSet.new())}
   end
 
@@ -104,7 +109,9 @@ defmodule SermoWeb.NewConversationLive do
       if type == "direct" do
         MapSet.new([id])
       else
-        if MapSet.member?(selected, id), do: MapSet.delete(selected, id), else: MapSet.put(selected, id)
+        if MapSet.member?(selected, id),
+          do: MapSet.delete(selected, id),
+          else: MapSet.put(selected, id)
       end
 
     {:noreply, assign(socket, selected_ids: selected)}

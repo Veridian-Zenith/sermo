@@ -108,10 +108,13 @@ defmodule Sermo.Conversations do
   end
 
   def remove_member(conversation_id, user_id) do
-    Repo.delete_all(
-      from cm in ConversationMember,
-        where: cm.conversation_id == ^conversation_id and cm.user_id == ^user_id
-    )
+    {count, _} =
+      Repo.delete_all(
+        from cm in ConversationMember,
+          where: cm.conversation_id == ^conversation_id and cm.user_id == ^user_id
+      )
+
+    count > 0
   end
 
   def delete_conversation(conversation_id) do
@@ -129,6 +132,7 @@ defmodule Sermo.Conversations do
       {:ok, msg} ->
         msg = Repo.preload(msg, :sender)
         broadcast_new_message(msg)
+        touch_conversation(conversation_id)
         {:ok, msg}
 
       error ->
@@ -137,29 +141,45 @@ defmodule Sermo.Conversations do
   end
 
   def update_message(message_id, sender_id, attrs) do
-    message = Repo.get!(Message, message_id)
+    case Repo.get(Message, message_id) do
+      nil ->
+        {:error, :not_found}
 
-    if message.sender_id == sender_id do
-      message
-      |> Message.update_changeset(attrs)
-      |> Repo.update()
-      |> case do
-        {:ok, msg} -> {:ok, Repo.preload(msg, :sender)}
-        error -> error
-      end
-    else
-      {:error, :not_authorized}
+      message ->
+        if message.sender_id == sender_id do
+          message
+          |> Message.update_changeset(attrs)
+          |> Repo.update()
+          |> case do
+            {:ok, msg} ->
+              msg = Repo.preload(msg, :sender)
+              broadcast_message_updated(msg)
+              touch_conversation(msg.conversation_id)
+              {:ok, msg}
+
+            error ->
+              error
+          end
+        else
+          {:error, :not_authorized}
+        end
     end
   end
 
   def delete_message(message_id, sender_id) do
-    message = Repo.get!(Message, message_id)
+    case Repo.get(Message, message_id) do
+      nil ->
+        {:error, :not_found}
 
-    if message.sender_id == sender_id do
-      Repo.delete!(message)
-      {:ok, message}
-    else
-      {:error, :not_authorized}
+      message ->
+        if message.sender_id == sender_id do
+          Repo.delete!(message)
+          broadcast_message_deleted(message)
+          touch_conversation(message.conversation_id)
+          {:ok, message}
+        else
+          {:error, :not_authorized}
+        end
     end
   end
 
@@ -169,6 +189,16 @@ defmodule Sermo.Conversations do
         where: m.conversation_id == ^conversation_id,
         order_by: [asc: m.inserted_at],
         limit: ^limit,
+        preload: [:sender]
+    )
+  end
+
+  def last_message(conversation_id) do
+    Repo.one(
+      from m in Message,
+        where: m.conversation_id == ^conversation_id,
+        order_by: [desc: m.inserted_at],
+        limit: 1,
         preload: [:sender]
     )
   end
@@ -204,6 +234,30 @@ defmodule Sermo.Conversations do
     end
   end
 
+  def broadcast_message_updated(msg) do
+    members = list_members(msg.conversation_id)
+
+    for member <- members do
+      Phoenix.PubSub.broadcast(
+        Sermo.PubSub,
+        "user:#{member.user_id}",
+        {:message_updated, msg}
+      )
+    end
+  end
+
+  def broadcast_message_deleted(msg) do
+    members = list_members(msg.conversation_id)
+
+    for member <- members do
+      Phoenix.PubSub.broadcast(
+        Sermo.PubSub,
+        "user:#{member.user_id}",
+        {:message_deleted, msg.id, msg.conversation_id}
+      )
+    end
+  end
+
   def broadcast_conversation_update(conv) do
     conv = if Ecto.assoc_loaded?(conv.members), do: conv, else: Repo.preload(conv, :members)
 
@@ -214,6 +268,41 @@ defmodule Sermo.Conversations do
         {:conversation_updated, conv.id}
       )
     end
+  end
+
+  def broadcast_member_removed(conversation_id, removed_user_id) do
+    members = list_members(conversation_id)
+
+    for member <- members do
+      Phoenix.PubSub.broadcast(
+        Sermo.PubSub,
+        "user:#{member.user_id}",
+        {:member_removed, conversation_id, removed_user_id}
+      )
+    end
+
+    Phoenix.PubSub.broadcast(
+      Sermo.PubSub,
+      "user:#{removed_user_id}",
+      {:you_were_removed, conversation_id}
+    )
+  end
+
+  def broadcast_typing(conversation_id, user, member_ids) do
+    for id <- member_ids do
+      Phoenix.PubSub.broadcast(
+        Sermo.PubSub,
+        "user:#{id}",
+        {:typing, conversation_id, user}
+      )
+    end
+  end
+
+  defp touch_conversation(conversation_id) do
+    Repo.update_all(
+      from(c in Conversation, where: c.id == ^conversation_id),
+      set: [updated_at: DateTime.utc_now() |> DateTime.truncate(:second)]
+    )
   end
 
   defp find_direct_conversation(user1_id, user2_id) do
