@@ -40,8 +40,15 @@ defmodule SermoWeb.Plugs.RateLimit do
 
   defp table do
     case :ets.info(@table) do
-      :undefined -> :ets.new(@table, [:named_table, :public, :set, write_concurrency: true])
-      _ -> @table
+      :undefined ->
+        try do
+          :ets.new(@table, [:named_table, :public, :set, write_concurrency: true])
+        rescue
+          ArgumentError -> @table
+        end
+
+      _ ->
+        @table
     end
   end
 end

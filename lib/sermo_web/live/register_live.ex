@@ -11,7 +11,7 @@ defmodule SermoWeb.RegisterLive do
       <div class="h-full flex items-center justify-center bg-primary">
         <div class="w-full max-w-sm mx-4 p-8 card">
           <h1 class="text-3xl font-black text-center mb-1 text-gradient select-none">Create Account</h1>
-          <p class="text-sm text-secondary text-center mb-8 select-none">join the conversation</p>
+          <p class="text-sm text-secondary text-center mb-8 select-none tracking-wider uppercase">join the conversation</p>
           <form action="/register" method="post" class="space-y-4">
             <input type="hidden" name="_csrf_token" value={@csrf_token} />
             <div>

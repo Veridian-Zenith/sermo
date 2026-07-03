@@ -13,7 +13,7 @@ defmodule SermoWeb.ChatLive do
       Phoenix.PubSub.subscribe(Sermo.PubSub, "user:#{current_user.id}")
 
       uid = "#{current_user.id}"
-      SermoWeb.Presence.track(self(), "presence", %{user_id: uid}, %{})
+      SermoWeb.Presence.track(self(), "presence", uid, %{user_id: uid})
     end
 
     online =
@@ -31,6 +31,7 @@ defmodule SermoWeb.ChatLive do
     conversations = Conversations.list_conversations(current_user.id)
     enriched = Conversations.enrich_conversations(conversations, current_user.id)
     last_msgs = load_last_messages(enriched)
+    friends = Accounts.list_friends(current_user.id)
 
     socket =
       socket
@@ -43,31 +44,49 @@ defmodule SermoWeb.ChatLive do
         editing_body: "",
         last_messages: last_msgs,
         typing_users: %{},
-        online_users: online
+        online_users: online,
+        friends: friends,
+        friend_statuses: %{},
+        friend_requests: Accounts.list_incoming_requests(current_user.id)
       )
       |> stream(:messages, [])
 
     {:ok, socket}
   end
 
+  def handle_params(params, _uri, socket) do
+    conv_id = params["conversation_id"]
+
+    if conv_id && Conversations.is_member?(socket.assigns.current_user.id, conv_id) do
+      messages = Conversations.list_messages(conv_id)
+
+      {:noreply,
+       socket
+       |> assign(current_conversation_id: conv_id, editing_message_id: nil, editing_body: "")
+       |> stream(:messages, messages, reset: true)}
+    else
+      {:noreply, socket}
+    end
+  end
+
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash}>
       <div class="flex h-full bg-primary">
-        <aside class="w-72 lg:w-80 border-r flex flex-col bg-secondary overflow-x-hidden select-none shrink-0">
+        <aside class="w-72 lg:w-80 border-r flex flex-col bg-secondary backdrop-blur-sm overflow-x-hidden select-none shrink-0">
           <div class="p-4 sidebar-header flex justify-between items-center">
             <h2 class="text-lg font-black text-gradient">Sermo</h2>
-            <button phx-click="new-conversation" class="btn btn-ghost rounded-xl px-3 py-1.5 text-xs">
+            <.link href="/conversations/new" class="btn btn-ghost rounded-xl px-3 py-1.5 text-xs no-underline">
               + New
-            </button>
+            </.link>
           </div>
           <div class="flex-1 overflow-y-auto overflow-x-hidden">
             <div :if={@conversations == []} class="p-6 text-muted text-center text-sm space-y-3">
               <div class="text-lg">☕</div>
               <div>no conversations yet</div>
-              <button phx-click="new-conversation" class="btn btn-ghost rounded-xl px-4 py-2 text-xs mt-2">
+              <.link href="/conversations/new" class="btn btn-ghost rounded-xl px-4 py-2 text-xs mt-2 inline-block">
                 start one
-              </button>
+              </.link>
             </div>
             <div :for={conv <- @conversations}
               phx-click="select-conversation" phx-value-id={conv.id}
@@ -75,13 +94,27 @@ defmodule SermoWeb.ChatLive do
               <div class="flex items-center justify-between">
                 <div class="flex items-center gap-2 min-w-0">
                   <div class="font-semibold text-sm text-white truncate"><%= conv.display_name %></div>
-                  <div :if={conv.type == "group"} class="text-xs text-muted shrink-0">group</div>
+                  <div :if={conv.type == "group"} class="text-xs text-muted shrink-0 tracking-wider uppercase">group</div>
                 </div>
                 <.dot on={Map.has_key?(@online_users, other_id(conv, @current_user.id))} />
               </div>
               <div :if={preview = Map.get(@last_messages, conv.id)} class="text-xs text-muted mt-1 truncate">
                 <%= preview.sender.username %>: <%= preview.body %>
               </div>
+            </div>
+          </div>
+          <div class="px-4 py-3 border-t">
+            <div class="flex items-center justify-between mb-2">
+              <span class="label">Friends</span>
+              <.link href="/friends" class="text-xs text-accent font-semibold hover-bright transition">manage</.link>
+            </div>
+            <div :if={length(@friend_requests) > 0} class="mb-2 px-3 py-1.5 rounded-xl bg-accent/10 border border-accent/30 text-xs text-accent">
+              <%= length(@friend_requests) %> pending request<%= if length(@friend_requests) != 1, do: "s" %>
+            </div>
+            <div :if={@friends == []} class="text-xs text-muted pl-1">no friends yet</div>
+            <div :for={friend <- @friends} class="flex items-center gap-2 px-2 py-1.5 rounded-xl hover:bg-accent-subtle transition cursor-default group">
+              <.dot on={Map.has_key?(@online_users, friend.id)} />
+              <span class="text-xs truncate text-muted group-hover:text-white transition"><%= friend.display_name || friend.username %></span>
             </div>
           </div>
           <div class="p-3 sidebar-footer text-sm text-secondary flex justify-between items-center">
@@ -103,7 +136,7 @@ defmodule SermoWeb.ChatLive do
             </div>
           </div>
           <div :if={@current_conversation_id != nil} class="flex-1 flex flex-col min-h-0">
-            <div class="flex items-center justify-between px-4 py-2 border-b bg-secondary/30 shrink-0">
+            <div class="flex items-center justify-between px-4 py-3 border-b chat-header bg-secondary/30 shrink-0">
               <div class="flex items-center gap-2 min-w-0">
                 <.dot on={Map.has_key?(@online_users, conv_other_id(@current_conversation_id, @conversations, @current_user.id))} />
                 <div class="text-sm font-semibold text-white truncate">
@@ -114,11 +147,11 @@ defmodule SermoWeb.ChatLive do
             </div>
             <div id="messages" phx-update="stream" class="flex-1 overflow-y-auto p-4 space-y-3">
               <div :for={{id, msg} <- @streams.messages} id={id} class={"flex " <> (if msg.sender_id == @current_user.id, do: "justify-end", else: "justify-start")}>
-                <div class={"max-w-md px-4 py-2 relative group " <> (if msg.sender_id == @current_user.id, do: "msg-own", else: "msg-other")}>
-                  <div :if={msg.sender_id != @current_user.id} class="text-xs font-semibold text-accent-dim mb-0.5">
+                <div class={"max-w-md lg:msg-max px-4 py-3 relative group shadow-card " <> (if msg.sender_id == @current_user.id, do: "msg-own", else: "msg-other")}>
+                  <div :if={msg.sender_id != @current_user.id} class="text-xs font-semibold text-accent-dim mb-0.5 tracking-wider uppercase">
                     <%= msg.sender.display_name || msg.sender.username %>
                   </div>
-                  <div :if={@editing_message_id != msg.id} class="text-sm whitespace-pre-wrap"><%= msg.body %></div>
+                  <div :if={@editing_message_id != msg.id} class="text-sm whitespace-pre-wrap leading-relaxed"><%= msg.body %></div>
                   <form :if={@editing_message_id == msg.id} phx-submit="update-message" class="flex gap-2">
                     <input type="hidden" name="message_id" value={msg.id} />
                     <input type="text" name="body" value={@editing_body}
@@ -138,13 +171,13 @@ defmodule SermoWeb.ChatLive do
                 </div>
               </div>
             </div>
-            <div :if={typing = typing_text(@typing_users, @current_conversation_id, @current_user.id)} class="px-4 py-1 text-xs text-muted italic">
+            <div :if={typing = typing_text(@typing_users, @current_conversation_id, @current_user.id)} class="px-4 py-1.5 text-xs text-muted italic">
               <%= typing %>
             </div>
             <form phx-submit="send-message" class="chat-input p-4 flex gap-3 bg-secondary/50">
               <input type="text" name="body" value={@new_message} placeholder="type a message..."
                 class="input-field flex-1" phx-change="typing" />
-              <button type="submit" class="btn btn-primary rounded-xl px-6 py-2 text-sm">
+              <button type="submit" class="btn btn-primary rounded-xl px-6 py-3 text-sm">
                 Send
               </button>
             </form>
@@ -281,10 +314,6 @@ defmodule SermoWeb.ChatLive do
     else
       {:noreply, socket}
     end
-  end
-
-  def handle_event("new-conversation", _, socket) do
-    {:noreply, push_navigate(socket, to: ~p"/conversations/new")}
   end
 
   def handle_info({:new_message, msg}, socket) do
@@ -435,12 +464,9 @@ defmodule SermoWeb.ChatLive do
     users = Map.get(typing_users, conv_id, %{})
 
     names =
-      users
-      |> Map.values()
-      |> Enum.map(fn {user, _time} ->
-        user.id != current_user_id && (user.display_name || user.username)
-      end)
-      |> Enum.reject(&is_nil/1)
+      for {user, _time} <- Map.values(users),
+          user.id != current_user_id,
+          do: user.display_name || user.username
 
     case names do
       [] -> nil

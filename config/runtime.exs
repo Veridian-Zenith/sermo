@@ -30,6 +30,24 @@ if config_env() == :prod do
 
   host = System.get_env("PHX_HOST") || "example.com"
 
+  recovery_key =
+    System.get_env("RECOVERY_ENCRYPTION_KEY") ||
+      raise """
+      environment variable RECOVERY_ENCRYPTION_KEY is missing.
+      Generate a 32-byte key with: mix run -e 'IO.puts(:crypto.strong_rand_bytes(32) |> Base.encode64())'
+      """
+
+  recovery_key_bytes =
+    recovery_key
+    |> Base.decode64!()
+    |> then(fn k ->
+      if byte_size(k) == 32,
+        do: k,
+        else: raise("RECOVERY_ENCRYPTION_KEY must decode to exactly 32 bytes")
+    end)
+
+  config :sermo, :recovery_encryption_key, recovery_key_bytes
+
   config :sermo, SermoWeb.Endpoint,
     url: [host: host, port: 443, scheme: "https"],
     http: [

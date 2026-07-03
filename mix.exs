@@ -51,7 +51,8 @@ defmodule Sermo.MixProject do
       {:jason, "~> 1.2"},
       {:dns_cluster, "~> 0.2.0"},
       {:bandit, "~> 1.5"},
-      {:bcrypt_elixir, "~> 3.0"}
+      {:argon2_elixir, "~> 4.0"},
+      {:lazy_html, ">= 0.1.0", only: :test}
     ]
   end
 

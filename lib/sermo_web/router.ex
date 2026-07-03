@@ -21,6 +21,7 @@ defmodule SermoWeb.Router do
     get "/", PageController, :index
     live "/login", LoginLive, :index
     live "/register", RegisterLive, :index
+    live "/recover", RecoverLive, :index
   end
 
   scope "/", SermoWeb do
@@ -37,6 +38,9 @@ defmodule SermoWeb.Router do
     live "/chat", ChatLive, :index
     live "/conversations/new", NewConversationLive, :index
     live "/profile", ProfileLive, :index
+    live "/friends", FriendsLive, :index
+    live "/recovery-keys", RecoveryKeysLive, :index
+    get "/recovery-keys/download", RecoveryDownloadController, :download
   end
 
   scope "/api/v1", SermoWeb.API, as: :api do

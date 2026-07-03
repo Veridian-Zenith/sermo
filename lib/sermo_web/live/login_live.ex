@@ -11,7 +11,7 @@ defmodule SermoWeb.LoginLive do
       <div class="h-full flex items-center justify-center bg-primary">
         <div class="w-full max-w-sm mx-4 p-8 card">
           <h1 class="text-3xl font-black text-center mb-1 text-gradient select-none">Sermo</h1>
-          <p class="text-sm text-secondary text-center mb-8 select-none">conversation platform</p>
+          <p class="text-sm text-secondary text-center mb-8 select-none tracking-wider uppercase">conversation platform</p>
           <form action="/session" method="post" class="space-y-4">
             <input type="hidden" name="_csrf_token" value={@csrf_token} />
             <div>
@@ -26,7 +26,10 @@ defmodule SermoWeb.LoginLive do
               Enter
             </button>
           </form>
-          <p class="text-center text-sm mt-6 text-secondary">
+          <p class="text-center text-sm mt-4 text-secondary">
+            <.link href="/recover" class="text-accent font-semibold hover-bright transition">Forgot password?</.link>
+          </p>
+          <p class="text-center text-sm mt-4 text-secondary">
             No account?
             <.link href="/register" class="text-accent font-semibold hover-bright transition">Create one</.link>
           </p>

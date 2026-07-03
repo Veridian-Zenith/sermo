@@ -23,56 +23,70 @@ defmodule SermoWeb.NewConversationLive do
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash}>
-      <div class="h-full flex items-center justify-center bg-primary">
-        <div class="w-full max-w-md mx-4">
+      <div class="h-full overflow-y-auto bg-primary">
+        <div class="w-full max-w-md lg:max-w-xl mx-auto p-6">
           <div class="flex items-center gap-3 mb-6">
-            <.link href="/chat" class="btn btn-ghost rounded-xl px-3 py-1.5 text-xs">← Back</.link>
+            <.link href="/chat" class="btn btn-ghost rounded-xl px-3 py-1.5 text-xs no-underline">← Back</.link>
             <h1 class="text-2xl font-black text-gradient">New Conversation</h1>
           </div>
-          <.form for={@form} id="conv-form" phx-submit="create" class="space-y-4 p-8 card">
-            <div>
-              <label class="label">Type</label>
-              <select name="conv[type]" id="conv_type" class="select-field mt-1" phx-change="change-type">
-                <option value="direct" selected={@form[:type].value == "direct"}>Direct Message</option>
-                <option value="group" selected={@form[:type].value == "group"}>Group</option>
-              </select>
-            </div>
-            <div :if={@form[:type].value == "group"}>
-              <label for="name" class="label">Group Name</label>
-              <input type="text" name="conv[name]" id="name" placeholder="name this group"
-                class="input-field mt-1" />
-            </div>
-            <div>
-              <label for="search" class="label">Search Users</label>
-              <input type="text" name="search" id="search" value={@search}
-                phx-input="search-users" placeholder="start typing to filter..."
-                class="input-field mt-1" />
-            </div>
-            <div>
-              <label class="label"><%= if @form[:type].value == "group", do: "Select Members", else: "Select User" %></label>
-              <div class="mt-1 max-h-48 overflow-y-auto space-y-1 border border-[var(--vz-border-color)] rounded-xl p-2">
-                <div :for={u <- @filtered_users} class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-accent-subtle transition-fast cursor-pointer"
-                  phx-click="toggle-user" phx-value-id={u.id}>
-                  <input type={if @form[:type].value == "direct", do: "radio", else: "checkbox"}
-                    name={if @form[:type].value == "direct", do: "conv[member_ids]", else: "conv[member_ids][]"}
-                    value={u.id}
-                    checked={u.id in @selected_ids}
-                    class="accent-[var(--vz-accent-vibrant)] cursor-pointer" />
-                  <span class="text-sm text-white"><%= u.display_name || u.username %></span>
-                  <span :if={u.display_name} class="text-xs text-muted ml-auto">@<%= u.username %></span>
-                </div>
-                <div :if={@filtered_users == []} class="text-xs text-muted text-center py-2">
-                  no users found
+
+          <div :if={@users == []} class="p-6 card text-center space-y-3">
+            <div class="text-lg">👋</div>
+            <p class="text-sm text-secondary leading-relaxed">
+              no other users yet<br />
+              share this app with friends to get started
+            </p>
+            <p class="text-xs text-muted mt-2">
+              give them the URL of this server to sign up
+            </p>
+          </div>
+
+          <div :if={@users != []} class="space-y-4">
+            <.form for={@form} id="conv-form" phx-submit="create" class="space-y-4 p-6 card">
+              <div>
+                <label class="label">Type</label>
+                <select name="conv[type]" id="conv_type" class="select-field mt-1" phx-change="change-type">
+                  <option value="direct" selected={@form[:type].value == "direct"}>Direct Message</option>
+                  <option value="group" selected={@form[:type].value == "group"}>Group</option>
+                </select>
+              </div>
+              <div :if={@form[:type].value == "group"}>
+                <label for="name" class="label">Group Name</label>
+                <input type="text" name="conv[name]" id="name" placeholder="name this group"
+                  class="input-field mt-1" />
+              </div>
+              <div>
+                <label for="search" class="label">Search Users</label>
+                <input type="text" name="search" id="search" value={@search}
+                  phx-input="search-users" placeholder="start typing to filter..."
+                  class="input-field mt-1" />
+              </div>
+              <div>
+                <label class="label"><%= if @form[:type].value == "group", do: "Select Members", else: "Select User" %></label>
+                <div class="mt-1 max-h-48 overflow-y-auto space-y-1 border border-[var(--vz-border-color)] rounded-2xl p-2">
+                  <div :for={u <- @filtered_users} class="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-accent-subtle transition-fast cursor-pointer"
+                    phx-click="toggle-user" phx-value-id={u.id}>
+                    <input type={if @form[:type].value == "direct", do: "radio", else: "checkbox"}
+                      name={if @form[:type].value == "direct", do: "conv[member_ids]", else: "conv[member_ids][]"}
+                      value={u.id}
+                      checked={u.id in @selected_ids}
+                      class="accent-[var(--vz-accent-vibrant)] cursor-pointer" />
+                    <span class="text-sm text-white"><%= u.display_name || u.username %></span>
+                    <span :if={u.display_name} class="text-xs text-muted ml-auto">@<%= u.username %></span>
+                  </div>
+                  <div :if={@filtered_users == []} class="text-xs text-muted text-center py-2">
+                    no users match that filter
+                  </div>
                 </div>
               </div>
-            </div>
-            <div :if={@form[:type].value == "group" && MapSet.size(@selected_ids) > 0} class="text-xs text-muted">
-              <%= MapSet.size(@selected_ids) %> user(s) selected
-            </div>
-            <button type="submit" class="btn btn-primary w-full py-3 rounded-xl text-sm">
-              Create
-            </button>
-          </.form>
+              <div :if={@form[:type].value == "group" && MapSet.size(@selected_ids) > 0} class="text-xs text-muted">
+                <%= MapSet.size(@selected_ids) %> user(s) selected
+              </div>
+              <button type="submit" class="btn btn-primary w-full py-3 rounded-xl text-sm">
+                Create
+              </button>
+            </.form>
+          </div>
         </div>
       </div>
     </Layouts.app>
@@ -130,7 +144,7 @@ defmodule SermoWeb.NewConversationLive do
           case Conversations.create_direct_conversation(socket.assigns.current_user.id, other_id) do
             {:ok, conv} ->
               Conversations.broadcast_conversation_update(conv)
-              {:noreply, redirect(socket, to: ~p"/chat")}
+              {:noreply, push_navigate(socket, to: ~p"/chat")}
 
             {:error, _} ->
               {:noreply, put_flash(socket, :error, "Could not create conversation")}
@@ -156,7 +170,7 @@ defmodule SermoWeb.NewConversationLive do
                  ) do
               {:ok, conv} ->
                 Conversations.broadcast_conversation_update(conv)
-                {:noreply, redirect(socket, to: ~p"/chat")}
+                {:noreply, push_navigate(socket, to: ~p"/chat")}
 
               {:error, _} ->
                 {:noreply, put_flash(socket, :error, "Could not create conversation")}

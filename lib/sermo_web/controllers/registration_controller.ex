@@ -14,10 +14,18 @@ defmodule SermoWeb.RegistrationController do
            display_name: display_name
          }) do
       {:ok, user} ->
+        {:ok, keys} = Accounts.generate_recovery_keys(user, 3)
+
+        token =
+          Phoenix.Token.sign(
+            SermoWeb.Endpoint,
+            "recovery-download",
+            Enum.map_join(keys, "|", fn k -> "#{k.id}:#{k.key}" end)
+          )
+
         conn
         |> SermoWeb.UserAuth.login(user)
-        |> put_flash(:info, "Account created! Welcome!")
-        |> redirect(to: "/chat")
+        |> redirect(to: "/recovery-keys?token=#{token}")
 
       {:error, changeset} ->
         errors = Ecto.Changeset.traverse_errors(changeset, fn {msg, _} -> msg end)

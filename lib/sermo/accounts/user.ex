@@ -9,6 +9,9 @@ defmodule Sermo.Accounts.User do
     field :username, :string
     field :password_hash, :string
     field :display_name, :string
+    field :avatar_path, :string
+    field :bio, :string
+    field :social_links, :map, default: %{}
 
     field :password, :string, virtual: true
 
@@ -29,8 +32,9 @@ defmodule Sermo.Accounts.User do
 
   def profile_changeset(user, attrs) do
     user
-    |> cast(attrs, [:display_name])
+    |> cast(attrs, [:display_name, :avatar_path, :bio, :social_links])
     |> validate_length(:display_name, max: 64)
+    |> validate_length(:bio, max: 500)
   end
 
   def password_changeset(user, attrs) do
@@ -44,7 +48,7 @@ defmodule Sermo.Accounts.User do
   defp hash_password(changeset) do
     case changeset do
       %Ecto.Changeset{valid?: true, changes: %{password: pass}} ->
-        put_change(changeset, :password_hash, Bcrypt.hash_pwd_salt(pass))
+        put_change(changeset, :password_hash, Argon2.hash_pwd_salt(pass))
 
       _ ->
         changeset

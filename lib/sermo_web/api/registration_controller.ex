@@ -14,13 +14,14 @@ defmodule SermoWeb.API.RegistrationController do
            display_name: display_name
          }) do
       {:ok, user} ->
-        token = SermoWeb.API.Auth.generate_token(user)
+        {:ok, keys} = Accounts.generate_recovery_keys(user, 3)
 
         conn
         |> put_status(:created)
         |> json(%{
           data: %{
-            token: token,
+            token: SermoWeb.API.Auth.generate_token(user),
+            recovery_keys: Enum.map(keys, & &1.key),
             user: %{
               id: user.id,
               username: user.username,

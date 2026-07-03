@@ -11,6 +11,18 @@ config :sermo,
   ecto_repos: [Sermo.Repo],
   generators: [timestamp_type: :utc_datetime]
 
+enc_key =
+  "sermo-recovery-encryption-key-dev-secret-32bytes!"
+  |> then(fn s ->
+    if byte_size(s) >= 32 do
+      binary_part(s, 0, 32)
+    else
+      raise "dev recovery encryption key too short"
+    end
+  end)
+
+config :sermo, :recovery_encryption_key, enc_key
+
 # Configure the endpoint
 config :sermo, SermoWeb.Endpoint,
   url: [host: "localhost"],
