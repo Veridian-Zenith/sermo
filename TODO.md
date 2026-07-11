@@ -9,15 +9,15 @@
 - [ ] API session controller (login, logout, token validation)
 
 ## Phase 2: Test Coverage — Controllers & Plugs
-- [ ] Session controller (login/logout)
-- [ ] Registration controller
-- [ ] Page controller
-- [ ] Recovery download controller
-- [ ] `RequireAuth` plug
-- [ ] `UserAuth` plug
-- [ ] `RateLimit` plug
-- [ ] `SecurityHeaders` plug
-- [ ] API auth plug
+- [x] Session controller (login/logout)
+- [x] Registration controller
+- [x] Page controller
+- [x] Recovery download controller
+- [x] `RequireAuth` plug
+- [x] `UserAuth` plug
+- [x] `RateLimit` plug
+- [x] `SecurityHeaders` plug
+- [x] API auth plug
 
 ## Phase 3: Test Coverage — LiveViews
 - [ ] `LoginLive`

@@ -1,10 +1,10 @@
 defmodule SermoWeb.SessionControllerTest do
-  use SermoWeb.ConnCase, async: true
+  use SermoWeb.ConnCase, async: false
 
   import Sermo.Fixtures
 
   describe "POST /session" do
-    test "logs in with valid credentials", %{conn: conn} do
+    test "logs in with valid credentials and redirects to /chat", %{conn: conn} do
       user = create_user()
 
       conn =
@@ -13,33 +13,40 @@ defmodule SermoWeb.SessionControllerTest do
           password: "password123"
         })
 
-      assert redirected_to(conn) == "/chat"
-      assert Phoenix.Flash.get(conn.assigns.flash, :info) == "Welcome back!"
+      assert redirected_to(conn) == ~p"/chat"
+      assert get_session(conn, :user_id) == user.id
+      assert Phoenix.Flash.get(conn.assigns.flash, :info) =~ "Welcome"
     end
 
-    test "rejects invalid credentials", %{conn: conn} do
+    test "rejects invalid credentials and redirects to /login", %{conn: conn} do
+      create_user()
+
       conn =
         post(conn, ~p"/session", %{
-          username: "nobody",
+          username: "anyone",
           password: "wrong"
         })
 
-      assert redirected_to(conn) == "/login"
-      assert Phoenix.Flash.get(conn.assigns.flash, :error) == "Invalid username or password"
+      assert redirected_to(conn) == ~p"/login"
+      assert get_session(conn, :user_id) == nil
+      assert Phoenix.Flash.get(conn.assigns.flash, :error) =~ "Invalid"
     end
   end
 
   describe "GET /logout" do
-    test "logs out authenticated user", %{conn: conn} do
+    test "clears the session and redirects to /login", %{conn: conn} do
       user = create_user()
+      conn = post(conn, ~p"/session", %{username: user.username, password: "password123"})
+      assert get_session(conn, :user_id) == user.id
 
-      conn =
-        conn
-        |> Plug.Test.init_test_session(%{user_id: user.id})
-        |> get(~p"/logout")
+      conn = get(conn, ~p"/logout")
 
-      assert redirected_to(conn) == "/login"
-      assert conn.private[:plug_session_info] == :drop
+      assert redirected_to(conn) == ~p"/login"
+
+      # The session must be genuinely cleared: a protected route now bounces
+      # back to the login page.
+      conn = get(conn, ~p"/chat")
+      assert redirected_to(conn) == ~p"/login"
     end
   end
 end

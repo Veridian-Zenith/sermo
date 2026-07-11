@@ -1,48 +1,47 @@
 defmodule SermoWeb.RecoveryDownloadControllerTest do
-  use SermoWeb.ConnCase, async: true
+  use SermoWeb.ConnCase, async: false
 
   import Sermo.Fixtures
 
-  describe "GET /recovery-keys/download" do
-    test "returns 404 without token", %{conn: conn} do
-      user = create_user()
+  defp register_and_extract_token(conn) do
+    username = unique_username()
 
-      conn =
-        conn
-        |> Plug.Test.init_test_session(%{user_id: user.id})
-        |> get(~p"/recovery-keys/download")
+    conn =
+      post(conn, ~p"/register", %{
+        username: username,
+        password: "password123",
+        display_name: "Recovery User"
+      })
 
-      assert html_response(conn, 404)
-    end
+    location = redirected_to(conn)
+    %{"token" => token} = URI.decode_query(URI.parse(location).query)
+    {conn, token}
+  end
 
-    test "returns 404 for invalid token", %{conn: conn} do
-      user = create_user()
+  test "GET /recovery-keys/download returns the keys as an attachment", %{conn: conn} do
+    {conn, token} = register_and_extract_token(conn)
 
-      conn =
-        conn
-        |> Plug.Test.init_test_session(%{user_id: user.id})
-        |> get(~p"/recovery-keys/download?token=bogus")
+    conn = get(conn, ~p"/recovery-keys/download?token=#{token}")
 
-      assert html_response(conn, 404)
-    end
+    assert conn.status == 200
+    assert get_resp_header(conn, "content-type") |> List.first() =~ "text/plain"
+    assert get_resp_header(conn, "content-disposition") |> List.first() =~ "attachment"
+    assert conn.resp_body =~ "Recovery Keys"
+  end
 
-    test "downloads recovery keys text file with valid token", %{conn: conn} do
-      user = create_user()
-      {:ok, keys} = Sermo.Accounts.generate_recovery_keys(user, 1)
+  test "rejects a missing token with 404", %{conn: conn} do
+    user = create_user()
+    conn = post(conn, ~p"/session", %{username: user.username, password: "password123"})
 
-      token =
-        Phoenix.Token.sign(SermoWeb.Endpoint, "recovery-download",
-          Enum.map_join(keys, "|", fn k -> "#{k.id}:#{k.key}" end)
-        )
+    conn = get(conn, ~p"/recovery-keys/download")
+    assert conn.status == 404
+  end
 
-      conn =
-        conn
-        |> Plug.Test.init_test_session(%{user_id: user.id})
-        |> get(~p"/recovery-keys/download?token=#{token}")
+  test "rejects an invalid token with 404", %{conn: conn} do
+    user = create_user()
+    conn = post(conn, ~p"/session", %{username: user.username, password: "password123"})
 
-      assert conn.status == 200
-      assert get_resp_header(conn, "content-type") |> hd() =~ "text/plain"
-      assert conn.resp_body =~ user.username
-    end
+    conn = get(conn, ~p"/recovery-keys/download?token=not-a-real-token")
+    assert conn.status == 404
   end
 end

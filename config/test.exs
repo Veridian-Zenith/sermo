@@ -32,6 +32,9 @@ config :logger, level: :warning
 # Initialize plugs at runtime for faster test compilation
 config :phoenix, :plug_init_mode, :runtime
 
+# Allow tests to make many auth requests without tripping the rate limit.
+config :sermo, SermoWeb.Plugs.RateLimit, max: 10_000
+
 # Sort query params output of verified routes for robust url comparisons
 config :phoenix,
   sort_verified_routes_query_params: true

@@ -37,7 +37,7 @@ defmodule SermoWeb.API.Auth do
   end
 
   def require_auth(conn, _opts) do
-    if conn.assigns.api_user do
+    if Map.get(conn.assigns, :api_user) do
       conn
     else
       conn

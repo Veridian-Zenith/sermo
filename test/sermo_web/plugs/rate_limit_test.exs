@@ -3,8 +3,11 @@ defmodule SermoWeb.Plugs.RateLimitTest do
 
   setup do
     case :ets.info(:sermo_rate_limit) do
-      :undefined -> :ets.new(:sermo_rate_limit, [:named_table, :public, :set, write_concurrency: true])
-      _ -> :ok
+      :undefined ->
+        :ets.new(:sermo_rate_limit, [:named_table, :public, :set, write_concurrency: true])
+
+      _ ->
+        :ok
     end
 
     on_exit(fn ->

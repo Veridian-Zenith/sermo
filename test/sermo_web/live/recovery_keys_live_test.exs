@@ -18,7 +18,9 @@ defmodule SermoWeb.RecoveryKeysLiveTest do
     {:ok, keys} = Sermo.Accounts.generate_recovery_keys(user, 1)
 
     token =
-      Phoenix.Token.sign(SermoWeb.Endpoint, "recovery-download",
+      Phoenix.Token.sign(
+        SermoWeb.Endpoint,
+        "recovery-download",
         Enum.map_join(keys, "|", fn k -> "#{k.id}:#{k.key}" end)
       )
 

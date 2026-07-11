@@ -306,16 +306,17 @@ defmodule Sermo.Conversations do
   end
 
   defp find_direct_conversation(user1_id, user2_id) do
-    user_ids = MapSet.new([user1_id, user2_id])
+    conversation_ids =
+      from cm in ConversationMember,
+        where: cm.user_id == ^user1_id or cm.user_id == ^user2_id,
+        group_by: cm.conversation_id,
+        having: count(cm.user_id) == 2,
+        select: cm.conversation_id
 
-    Repo.all(
-      from c in Conversation,
-        where: c.type == "direct",
-        preload: :members
+    from(c in Conversation,
+      where: c.type == "direct" and c.id in subquery(conversation_ids),
+      preload: :members
     )
-    |> Enum.find(fn conv ->
-      member_ids = Enum.map(conv.members, & &1.user_id) |> MapSet.new()
-      member_ids == user_ids
-    end)
+    |> Repo.one()
   end
 end

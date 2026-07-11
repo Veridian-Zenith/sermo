@@ -28,7 +28,6 @@ defmodule SermoWeb.API.SessionControllerTest do
 
       assert %{"errors" => _} = json_response(conn, 401)
     end
-
   end
 
   describe "DELETE /api/v1/session" do

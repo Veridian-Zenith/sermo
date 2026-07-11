@@ -24,6 +24,7 @@ AGENTS.md
 # Environment
 .env
 .env.*
+!.env.example
 
 # IDE project config
 .idea/

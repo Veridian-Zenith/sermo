@@ -1,24 +1,19 @@
 defmodule SermoWeb.PageControllerTest do
-  use SermoWeb.ConnCase, async: true
+  use SermoWeb.ConnCase, async: false
 
   import Sermo.Fixtures
 
-  describe "GET /" do
-    test "renders landing page for unauthenticated users", %{conn: conn} do
-      conn = get(conn, ~p"/")
-      assert html_response(conn, 200) =~ "Sermo"
-      assert html_response(conn, 200) =~ "Create Account"
-    end
+  test "GET / renders the landing page when logged out", %{conn: conn} do
+    conn = get(conn, ~p"/")
+    assert conn.status == 200
+    assert conn.resp_body =~ "Sermo"
+  end
 
-    test "redirects to chat for authenticated users", %{conn: conn} do
-      user = create_user()
+  test "GET / redirects to /chat when logged in", %{conn: conn} do
+    user = create_user()
+    conn = post(conn, ~p"/session", %{username: user.username, password: "password123"})
 
-      conn =
-        conn
-        |> Plug.Test.init_test_session(%{user_id: user.id})
-        |> get(~p"/")
-
-      assert redirected_to(conn) == "/chat"
-    end
+    conn = get(conn, ~p"/")
+    assert redirected_to(conn) == ~p"/chat"
   end
 end

@@ -19,11 +19,16 @@ defmodule Sermo.Accounts do
     Repo.get_by(User, username: username)
   end
 
-  def list_other_users(current_user_id) do
+  def list_other_users(current_user_id, opts \\ []) do
+    limit = Keyword.get(opts, :limit, 100)
+    offset = Keyword.get(opts, :offset, 0)
+
     Repo.all(
       from u in User,
         where: u.id != ^current_user_id,
-        order_by: u.username
+        order_by: u.username,
+        limit: ^limit,
+        offset: ^offset
     )
   end
 
@@ -64,14 +69,16 @@ defmodule Sermo.Accounts do
         %{plain: plain, encrypted: encrypted}
       end)
 
-    records =
-      Enum.map(keys_with_plaintext, fn k ->
-        %RecoveryKey{}
-        |> RecoveryKey.changeset(%{
-          user_id: user.id,
-          key_ciphertext: k.encrypted
-        })
-        |> Repo.insert!()
+    {:ok, records} =
+      Repo.transaction(fn ->
+        Enum.map(keys_with_plaintext, fn k ->
+          %RecoveryKey{}
+          |> RecoveryKey.changeset(%{
+            user_id: user.id,
+            key_ciphertext: k.encrypted
+          })
+          |> Repo.insert!()
+        end)
       end)
 
     plaintexts =

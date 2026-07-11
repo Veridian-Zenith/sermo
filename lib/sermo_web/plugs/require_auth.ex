@@ -5,7 +5,7 @@ defmodule SermoWeb.Plugs.RequireAuth do
   def init(opts), do: opts
 
   def call(conn, _opts) do
-    if conn.assigns.current_user do
+    if Map.get(conn.assigns, :current_user) do
       conn
     else
       conn

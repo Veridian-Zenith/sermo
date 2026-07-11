@@ -165,7 +165,11 @@ defmodule Sermo.AccountsTest do
     end
 
     test "accept_friend_request/2 returns error for nonexistent" do
-      assert {:error, :not_found} = Accounts.accept_friend_request("00000000-0000-0000-0000-000000000000", "00000000-0000-0000-0000-000000000000")
+      assert {:error, :not_found} =
+               Accounts.accept_friend_request(
+                 "00000000-0000-0000-0000-000000000000",
+                 "00000000-0000-0000-0000-000000000000"
+               )
     end
 
     test "decline_friend_request/2 removes the request" do
@@ -274,6 +278,7 @@ defmodule Sermo.AccountsTest do
       user = create_user()
       assert {:ok, keys} = Accounts.generate_recovery_keys(user, 3)
       assert length(keys) == 3
+
       for k <- keys do
         assert k.id
         assert byte_size(k.key) > 0
@@ -286,6 +291,7 @@ defmodule Sermo.AccountsTest do
       {:ok, _keys} = Accounts.generate_recovery_keys(user, 2)
       listed = Accounts.list_recovery_keys(user)
       assert length(listed) == 2
+
       for k <- listed do
         assert Map.has_key?(k, :id)
         assert Map.has_key?(k, :used)
@@ -313,11 +319,14 @@ defmodule Sermo.AccountsTest do
     test "recover_account/3 fails with wrong key" do
       user = create_user()
       Accounts.generate_recovery_keys(user, 1)
-      assert {:error, :invalid_recovery_key} = Accounts.recover_account(user.username, "wrong-key", "newpassword1")
+
+      assert {:error, :invalid_recovery_key} =
+               Accounts.recover_account(user.username, "wrong-key", "newpassword1")
     end
 
     test "recover_account/3 fails with unknown username" do
-      assert {:error, :invalid_username} = Accounts.recover_account("nobody", "some-key", "newpassword1")
+      assert {:error, :invalid_username} =
+               Accounts.recover_account("nobody", "some-key", "newpassword1")
     end
 
     test "has_recovery_keys?/1 returns true when keys exist" do

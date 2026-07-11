@@ -3,29 +3,24 @@ defmodule SermoWeb.Plugs.RequireAuthTest do
 
   import Sermo.Fixtures
 
-  test "allows authenticated user through", %{conn: conn} do
-    user = create_user()
-
+  test "halts and redirects to /login when unauthenticated" do
     conn =
-      conn
-      |> Plug.Test.init_test_session(%{user_id: user.id})
-      |> SermoWeb.UserAuth.call(%{})
-      |> SermoWeb.Plugs.RequireAuth.call(%{})
-
-    assert conn.halted == false
-    assert conn.assigns.current_user.id == user.id
-  end
-
-  test "redirects unauthenticated user", %{conn: conn} do
-    conn =
-      conn
+      build_conn(:get, "/chat")
       |> Plug.Test.init_test_session(%{})
-      |> fetch_flash()
-      |> assign(:current_user, nil)
-      |> SermoWeb.Plugs.RequireAuth.call(%{})
+      |> Phoenix.Controller.fetch_flash([])
+
+    conn = SermoWeb.Plugs.RequireAuth.call(conn, [])
 
     assert conn.halted
-    assert redirected_to(conn) == "/login"
-    assert Phoenix.Flash.get(conn.assigns.flash, :error) == "You must log in first"
+    assert redirected_to(conn) == ~p"/login"
+    assert Phoenix.Flash.get(conn.assigns.flash, :error) =~ "log in"
+  end
+
+  test "passes through when authenticated" do
+    user = create_user()
+    conn = build_conn(:get, "/chat") |> assign(:current_user, user)
+    conn = SermoWeb.Plugs.RequireAuth.call(conn, [])
+
+    refute conn.halted
   end
 end

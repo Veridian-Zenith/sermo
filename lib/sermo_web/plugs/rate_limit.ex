@@ -8,7 +8,7 @@ defmodule SermoWeb.Plugs.RateLimit do
   def init(opts), do: opts
 
   def call(conn, opts) do
-    max = opts[:max] || @max_requests
+    max = opts[:max] || Application.get_env(:sermo, __MODULE__, [])[:max] || @max_requests
     ip = conn.remote_ip |> :inet.ntoa() |> List.to_string()
     key = {:auth, ip, window_slot()}
     count = incr(key)
