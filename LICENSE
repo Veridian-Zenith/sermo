@@ -1,0 +1,77 @@
+Open Software License 3.0 (OSL-3.0)
+
+Copyright (c) 2024 Sermo Contributors
+
+This software is licensed under the Open Software License version 3.0.
+A copy of the license is provided below.
+
+---
+
+Open Software License ("OSL") v. 3.0
+
+This Open Software License ("OSL") is a license agreement between You and Lawrence Rosen ("Licensor") for the Software identified below, which includes both computer source code and associated documentation. By copying, installing, or otherwise using the Software, You agree to be bound by the terms of this license. If You do not agree to these terms, do not copy, install, or use the Software.
+
+1. Definitions
+
+"Software" means the computer program identified below, including all modifications and derivative works thereof.
+
+"Licensor" means the individual or entity that offers the Software under the terms of this license.
+
+"You" (or "Your") means an individual or entity exercising permissions granted by this license.
+
+"Derivative Works" means any work based on the Software that represents an original work of authorship, including translations, adaptations, modifications, and compilations.
+
+"Distribution" means the act of making the Software or Derivative Works available to the public, including by sale, license, lease, or otherwise.
+
+"External Deployment" means the use, distribution, or communication of the Software or Derivative Works in any way such that the Software or Derivative Works may be used by anyone other than You, whether such use is for commercial or non-commercial purposes, and whether such use is through a network, web service, application service provider, or any other means.
+
+2. Grant of Copyright License
+
+Licensor grants You a worldwide, royalty-free, non-exclusive, perpetual, sublicenseable license to:
+
+a) reproduce the Software in source code and object code form;
+b) create Derivative Works based upon the Software;
+c) distribute the Software and Derivative Works; and
+d) publicly perform, display, and externally deploy the Software and Derivative Works.
+
+3. Grant of Patent License
+
+Licensor grants You a worldwide, royalty-free, non-exclusive, perpetual, sublicenseable license under Licensor's patent claims necessarily infringed by the Software to make, use, sell, offer for sale, import, and otherwise transfer the Software.
+
+4. Conditions of Use
+
+As a condition of the licenses granted above, You must comply with the following:
+
+a) You must retain all copyright, patent, trademark, and attribution notices in the Software and any Derivative Works.
+
+b) If You distribute or externally deploy the Software or any Derivative Works, You must provide a copy of this license to all recipients, and You must cause any modified files to carry prominent notices stating that You changed the files and the date of any change.
+
+c) If You distribute or externally deploy the Software or any Derivative Works, You must make the source code available to all recipients under the terms of this license, either by including it with the distribution or by providing a written offer to provide the source code upon request.
+
+d) You may not use the Software or any Derivative Works for any unlawful purpose.
+
+e) You must not impose any additional restrictions on the recipients' exercise of the rights granted herein.
+
+5. External Deployment
+
+The licenses granted in Sections 2 and 3 extend to External Deployment. If You externally deploy the Software or any Derivative Works, You must make the source code available to all users of the External Deployment under the terms of this license.
+
+6. Termination
+
+This license terminates automatically if You fail to comply with its terms. Upon termination, You must cease all use, distribution, and external deployment of the Software and Derivative Works. Sections 7, 8, and 9 shall survive termination.
+
+7. Disclaimer of Warranty
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT. IN NO EVENT SHALL LICENSOR BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT, OR OTHERWISE, ARISING FROM, OUT OF, OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+8. Limitation of Liability
+
+IN NO EVENT SHALL LICENSOR BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING BUT NOT LIMITED TO PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+9. General
+
+This license shall be governed by the laws of the State of California, USA, excluding its conflict of law provisions. The parties consent to exclusive jurisdiction and venue in the federal courts of the Northern District of California. This license is the entire agreement between the parties and supersedes all prior agreements. If any provision is held unenforceable, it shall be reformed to the minimum extent necessary to make it enforceable. The failure to enforce any right shall not constitute a waiver.
+
+---
+
+End of Open Software License 3.0
