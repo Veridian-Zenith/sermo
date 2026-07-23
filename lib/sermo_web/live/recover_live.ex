@@ -102,21 +102,7 @@ defmodule SermoWeb.RecoverLive do
     if username == "" do
       {:noreply, assign(socket, error: "enter your username")}
     else
-      case Accounts.get_user_by_username(username) do
-        nil ->
-          {:noreply, assign(socket, error: "no account found with that username")}
-
-        user ->
-          if Accounts.has_recovery_keys?(user) do
-            {:noreply,
-             socket
-             |> assign(:step, :recovery_key)
-             |> assign(:recovering_user, user)
-             |> assign(:error, nil)}
-          else
-            {:noreply, assign(socket, error: "this account has no recovery keys set up")}
-          end
-      end
+      handle_username_lookup(username, socket)
     end
   end
 
@@ -170,24 +156,44 @@ defmodule SermoWeb.RecoverLive do
         {:noreply, assign(socket, step: :recovery_key, error: "recovery key is required")}
 
       true ->
-        username = socket.assigns.username
+        handle_recovery(socket.assigns.username, key, password, socket)
+    end
+  end
 
-        case Accounts.recover_account(username, key, password) do
-          {:ok, _user} ->
-            {:noreply,
-             socket
-             |> assign(:step, :done)
-             |> assign(:error, nil)}
+  defp handle_username_lookup(username, socket) do
+    case Accounts.get_user_by_username(username) do
+      nil ->
+        {:noreply, assign(socket, error: "no account found with that username")}
 
-          {:error, :invalid_username} ->
-            {:noreply, assign(socket, step: :username, error: "account not found")}
-
-          {:error, :invalid_recovery_key} ->
-            {:noreply, assign(socket, step: :recovery_key, error: "invalid recovery key")}
-
-          {:error, _} ->
-            {:noreply, assign(socket, error: "recovery failed. try again")}
+      user ->
+        if Accounts.has_recovery_keys?(user) do
+          {:noreply,
+           socket
+           |> assign(:step, :recovery_key)
+           |> assign(:recovering_user, user)
+           |> assign(:error, nil)}
+        else
+          {:noreply, assign(socket, error: "this account has no recovery keys set up")}
         end
+    end
+  end
+
+  defp handle_recovery(username, key, password, socket) do
+    case Accounts.recover_account(username, key, password) do
+      {:ok, _user} ->
+        {:noreply,
+         socket
+         |> assign(:step, :done)
+         |> assign(:error, nil)}
+
+      {:error, :invalid_username} ->
+        {:noreply, assign(socket, step: :username, error: "account not found")}
+
+      {:error, :invalid_recovery_key} ->
+        {:noreply, assign(socket, step: :recovery_key, error: "invalid recovery key")}
+
+      {:error, _} ->
+        {:noreply, assign(socket, error: "recovery failed. try again")}
     end
   end
 end

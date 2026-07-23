@@ -150,19 +150,7 @@ defmodule Sermo.Conversations do
 
       message ->
         if message.sender_id == sender_id do
-          message
-          |> Message.update_changeset(attrs)
-          |> Repo.update()
-          |> case do
-            {:ok, msg} ->
-              msg = Repo.preload(msg, :sender)
-              broadcast_message_updated(msg)
-              touch_conversation(msg.conversation_id)
-              {:ok, msg}
-
-            error ->
-              error
-          end
+          apply_message_update(message, attrs)
         else
           {:error, :not_authorized}
         end
@@ -208,19 +196,7 @@ defmodule Sermo.Conversations do
 
   def enrich_conversations(conversations, current_user_id) do
     Enum.map(conversations, fn conv ->
-      display_name =
-        if conv.type == "direct" do
-          other = Enum.find(conv.members, fn m -> m.user_id != current_user_id end)
-
-          if other && other.user do
-            other.user.display_name || other.user.username
-          else
-            "Unknown"
-          end
-        else
-          conv.name || "Group"
-        end
-
+      display_name = get_display_name(conv, current_user_id)
       %{conv | display_name: display_name}
     end)
   end
@@ -298,6 +274,31 @@ defmodule Sermo.Conversations do
         "user:#{id}",
         {:typing, conversation_id, user}
       )
+    end
+  end
+
+  defp apply_message_update(message, attrs) do
+    message
+    |> Message.update_changeset(attrs)
+    |> Repo.update()
+    |> case do
+      {:ok, msg} ->
+        msg = Repo.preload(msg, :sender)
+        broadcast_message_updated(msg)
+        touch_conversation(msg.conversation_id)
+        {:ok, msg}
+
+      error ->
+        error
+    end
+  end
+
+  defp get_display_name(conv, current_user_id) do
+    if conv.type == "direct" do
+      other = Enum.find(conv.members, fn m -> m.user_id != current_user_id end)
+      if other && other.user, do: other.user.display_name || other.user.username, else: "Unknown"
+    else
+      conv.name || "Group"
     end
   end
 

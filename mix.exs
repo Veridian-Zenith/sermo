@@ -54,7 +54,8 @@ defmodule Sermo.MixProject do
       {:argon2_elixir, "~> 4.0"},
       {:lazy_html, ">= 0.1.0", only: :test},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
-      {:dialyxir, "~> 1.4", only: [:dev], runtime: false}
+      {:dialyxir, "~> 1.4", only: [:dev], runtime: false},
+      {:sobelow, "~> 0.14", only: [:dev, :test], runtime: false}
     ]
   end
 
@@ -69,6 +70,7 @@ defmodule Sermo.MixProject do
         "deps.unlock --unused",
         "format",
         "credo",
+        "sobelow",
         "dialyzer",
         "test"
       ],

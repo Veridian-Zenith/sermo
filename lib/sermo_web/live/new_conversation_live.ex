@@ -133,48 +133,53 @@ defmodule SermoWeb.NewConversationLive do
 
   def handle_event("create", %{"conv" => params}, socket) do
     case params["type"] do
-      "direct" ->
-        member_ids = socket.assigns.selected_ids |> MapSet.to_list()
+      "direct" -> create_direct(socket)
+      "group" -> create_group(params, socket)
+    end
+  end
 
-        if member_ids == [] do
-          {:noreply, put_flash(socket, :error, "Select a user")}
-        else
-          other_id = hd(member_ids)
+  defp create_direct(socket) do
+    member_ids = socket.assigns.selected_ids |> MapSet.to_list()
 
-          case Conversations.create_direct_conversation(socket.assigns.current_user.id, other_id) do
-            {:ok, conv} ->
-              Conversations.broadcast_conversation_update(conv)
-              {:noreply, push_navigate(socket, to: ~p"/chat")}
+    if member_ids == [] do
+      {:noreply, put_flash(socket, :error, "Select a user")}
+    else
+      other_id = hd(member_ids)
 
-            {:error, _} ->
-              {:noreply, put_flash(socket, :error, "Could not create conversation")}
-          end
-        end
+      case Conversations.create_direct_conversation(socket.assigns.current_user.id, other_id) do
+        {:ok, conv} ->
+          Conversations.broadcast_conversation_update(conv)
+          {:noreply, push_navigate(socket, to: ~p"/chat")}
 
-      "group" ->
-        name = params["name"]
-        member_ids = socket.assigns.selected_ids |> MapSet.to_list()
+        {:error, _} ->
+          {:noreply, put_flash(socket, :error, "Could not create conversation")}
+      end
+    end
+  end
 
-        cond do
-          name == "" ->
-            {:noreply, put_flash(socket, :error, "Group needs a name")}
+  defp create_group(params, socket) do
+    name = params["name"]
+    member_ids = socket.assigns.selected_ids |> MapSet.to_list()
 
-          member_ids == [] ->
-            {:noreply, put_flash(socket, :error, "Select at least one member")}
+    cond do
+      name == "" ->
+        {:noreply, put_flash(socket, :error, "Group needs a name")}
 
-          true ->
-            case Conversations.create_group_conversation(
-                   socket.assigns.current_user.id,
-                   name,
-                   member_ids
-                 ) do
-              {:ok, conv} ->
-                Conversations.broadcast_conversation_update(conv)
-                {:noreply, push_navigate(socket, to: ~p"/chat")}
+      member_ids == [] ->
+        {:noreply, put_flash(socket, :error, "Select at least one member")}
 
-              {:error, _} ->
-                {:noreply, put_flash(socket, :error, "Could not create conversation")}
-            end
+      true ->
+        case Conversations.create_group_conversation(
+               socket.assigns.current_user.id,
+               name,
+               member_ids
+             ) do
+          {:ok, conv} ->
+            Conversations.broadcast_conversation_update(conv)
+            {:noreply, push_navigate(socket, to: ~p"/chat")}
+
+          {:error, _} ->
+            {:noreply, put_flash(socket, :error, "Could not create conversation")}
         end
     end
   end

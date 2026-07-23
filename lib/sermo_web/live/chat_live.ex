@@ -16,17 +16,7 @@ defmodule SermoWeb.ChatLive do
       SermoWeb.Presence.track(self(), "presence", uid, %{user_id: uid})
     end
 
-    online =
-      if connected?(socket) do
-        SermoWeb.Presence.list("presence")
-        |> Enum.reduce(%{}, fn {_ref, %{metas: metas}}, acc ->
-          Enum.reduce(metas, acc, fn meta, acc ->
-            if meta[:user_id], do: Map.put(acc, meta[:user_id], true), else: acc
-          end)
-        end)
-      else
-        %{}
-      end
+    online = if connected?(socket), do: fetch_online_users(), else: %{}
 
     conversations = Conversations.list_conversations(current_user.id)
     enriched = Conversations.enrich_conversations(conversations, current_user.id)
@@ -237,11 +227,7 @@ defmodule SermoWeb.ChatLive do
     conv_id = socket.assigns.current_conversation_id
 
     if conv_id && body != "" do
-      members =
-        case Enum.find(socket.assigns.conversations, fn c -> c.id == conv_id end) do
-          nil -> []
-          conv -> conv.members
-        end
+      members = get_conversation_members(socket.assigns.conversations, conv_id)
 
       Conversations.broadcast_typing(
         conv_id,
@@ -392,20 +378,29 @@ defmodule SermoWeb.ChatLive do
 
     online =
       Enum.reduce(diff.joins, online, fn {_ref, %{metas: metas}}, acc ->
-        Enum.reduce(metas, acc, fn meta, acc ->
-          if id = meta[:user_id], do: Map.put(acc, id, true), else: acc
-        end)
+        Enum.reduce(metas, acc, &add_online_user/2)
       end)
 
     online =
       Enum.reduce(diff.leaves, online, fn {_ref, %{metas: metas}}, acc ->
-        Enum.reduce(metas, acc, fn meta, acc ->
-          if id = meta[:user_id], do: Map.delete(acc, id), else: acc
-        end)
+        Enum.reduce(metas, acc, &remove_online_user/2)
       end)
 
     {:noreply, assign(socket, online_users: online)}
   end
+
+  defp fetch_online_users do
+    SermoWeb.Presence.list("presence")
+    |> Enum.reduce(%{}, fn {_ref, %{metas: metas}}, acc ->
+      Enum.reduce(metas, acc, &add_online_user/2)
+    end)
+  end
+
+  defp add_online_user(%{user_id: id}, acc) when is_binary(id), do: Map.put(acc, id, true)
+  defp add_online_user(_meta, acc), do: acc
+
+  defp remove_online_user(%{user_id: id}, acc) when is_binary(id), do: Map.delete(acc, id)
+  defp remove_online_user(_meta, acc), do: acc
 
   defp refresh_all(socket) do
     conversations = Conversations.list_conversations(socket.assigns.current_user.id)
@@ -437,6 +432,13 @@ defmodule SermoWeb.ChatLive do
         msg -> Map.put(acc, conv.id, msg)
       end
     end)
+  end
+
+  defp get_conversation_members(conversations, conv_id) do
+    case Enum.find(conversations, fn c -> c.id == conv_id end) do
+      nil -> []
+      conv -> conv.members
+    end
   end
 
   defp conv_name(conv_id, conversations) do
