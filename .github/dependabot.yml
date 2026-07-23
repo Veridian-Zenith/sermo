@@ -1,0 +1,67 @@
+version: 2
+updates:
+  - package-ecosystem: "hex"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "hex"
+    commit-message:
+      prefix: "deps"
+      prefix-development: "deps(dev)"
+    groups:
+      phoenix:
+        patterns:
+          - "phoenix*"
+          - "plug*"
+        update-types:
+          - "minor"
+          - "patch"
+      ecto:
+        patterns:
+          - "ecto*"
+          - "postgrex"
+        update-types:
+          - "minor"
+          - "patch"
+      live_view:
+        patterns:
+          - "phoenix_live*"
+        update-types:
+          - "minor"
+          - "patch"
+      security:
+        patterns:
+          - "*"
+        update-types:
+          - "security"
+    ignore:
+      - dependency-name: "mint"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "phoenix_live_view"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "bandit"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "argon2_elixir"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "comeonin"
+        update-types: ["version-update:semver-major"]
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "github-actions"
+    commit-message:
+      prefix: "ci"

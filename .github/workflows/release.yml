@@ -1,0 +1,50 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build Release
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Elixir
+        uses: erlef/setup-beam@v1
+        with:
+          otp-version: '27.0'
+          elixir-version: '1.18.0'
+
+      - name: Install deps
+        run: mix deps.get --only prod
+
+      - name: Compile
+        run: MIX_ENV=prod mix compile --warnings-as-errors
+
+      - name: Build release
+        run: MIX_ENV=prod mix release sermo
+
+      - name: Extract version
+        id: version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Create release archive
+        run: |
+          tar -czf sermo-${{steps.version.outputs.VERSION}}.tar.gz -C _build/prod/rel/sermo .
+
+      - name: Upload release asset
+        uses: softprops/action-gh-release@v2
+        with:
+          files: sermo-${{steps.version.outputs.VERSION}}.tar.gz
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
