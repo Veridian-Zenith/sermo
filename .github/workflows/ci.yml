@@ -108,14 +108,11 @@ jobs:
           otp-version: '27.0'
           elixir-version: '1.18.0'
 
-      - name: Install deps
-        run: mix deps.get
-
-      - name: Audit Hex packages
-        run: mix hex.audit
+      - name: Install Sobelow
+        run: mix escript.install hex sobelow --force
 
       - name: Run Sobelow
-        run: mix sobelow --fatal
+        run: ~/.mix/escripts/sobelow --fatal .
 
   zizmor:
     name: Audit GitHub Actions
