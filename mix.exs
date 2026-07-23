@@ -69,6 +69,7 @@ defmodule Sermo.MixProject do
         "deps.unlock --unused",
         "format",
         "credo",
+        "dialyzer",
         "test"
       ],
       release: [
