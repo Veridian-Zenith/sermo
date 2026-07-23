@@ -83,22 +83,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-    services:
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: sermo_test
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-    env:
-      DATABASE_URL: ecto://postgres:postgres@localhost/sermo_test
     steps:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11  # v4.1.1
         with:
@@ -110,16 +94,14 @@ jobs:
           otp-version: '27.0'
           elixir-version: '1.18.0'
 
-      - name: Install deps
-        run: mix deps.get
+      - name: Audit Hex packages
+        run: mix hex.audit
+
+      - name: Install Sobelow
+        run: mix escript.install hex sobelow --force
 
       - name: Run Sobelow
-        run: mix sobelow --fatal
-        continue-on-error: true
-
-      - name: Run hex audit
-        run: mix hex.audit
-        continue-on-error: true
+        run: ~/.mix/escripts/sobelow --fatal .
 
   zizmor:
     name: Audit GitHub Actions
