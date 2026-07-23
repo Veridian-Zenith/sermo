@@ -14,12 +14,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11  # v4.1.1
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Set up Elixir
-        uses: erlef/setup-beam@v1
+        uses: erlef/setup-beam@3f4617a5461fcaae6fa488c245250c514bfe08da  # v1.19.0
         with:
           otp-version: '27.0'
           elixir-version: '1.18.0'
@@ -33,18 +34,13 @@ jobs:
       - name: Build release
         run: MIX_ENV=prod mix release sermo
 
-      - name: Extract version
-        id: version
-        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
-
       - name: Create release archive
         run: |
-          tar -czf sermo-${{steps.version.outputs.VERSION}}.tar.gz -C _build/prod/rel/sermo .
+          VERSION="${GITHUB_REF#refs/tags/v}"
+          tar -czf "sermo-${VERSION}.tar.gz" -C _build/prod/rel/sermo .
 
       - name: Upload release asset
-        uses: softprops/action-gh-release@v2
-        with:
-          files: sermo-${{steps.version.outputs.VERSION}}.tar.gz
-          generate_release_notes: true
         env:
-          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+          GH_TOKEN: ${{secrets.GITHUB_TOKEN}}
+          TAG: ${{github.ref_name}}
+        run: gh release upload "$TAG" sermo-*.tar.gz --clobber

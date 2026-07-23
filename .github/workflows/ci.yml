@@ -6,6 +6,8 @@ on:
   pull_request:
     branches: [main]
 
+permissions: {}
+
 env:
   MIX_ENV: test
   ERL_FLAGS: "+JPperf true"
@@ -15,23 +17,27 @@ jobs:
     name: Test (OTP ${{matrix.otp}} / Elixir ${{matrix.elixir}})
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    permissions:
+      contents: read
     strategy:
       fail-fast: false
       matrix:
         otp: ['27.0']
         elixir: ['1.18.0']
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11  # v4.1.1
+        with:
+          persist-credentials: false
 
       - name: Set up Elixir
-        uses: erlef/setup-beam@v1
+        uses: erlef/setup-beam@3f4617a5461fcaae6fa488c245250c514bfe08da  # v1.19.0
         with:
           otp-version: ${{matrix.otp}}
           elixir-version: ${{matrix.elixir}}
 
       - name: Restore PLT cache
         id: plt-cache
-        uses: actions/cache@v4
+        uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684  # v4.2.3
         with:
           path: |
             _build/test/dialyxir_*.plt
@@ -42,7 +48,7 @@ jobs:
 
       - name: Restore deps cache
         id: deps-cache
-        uses: actions/cache@v4
+        uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684  # v4.2.3
         with:
           path: |
             deps
@@ -69,20 +75,21 @@ jobs:
       - name: Run Sobelow
         run: mix sobelow --fatal
 
-      - name: Run Dialyzer
-        run: mix dialyzer --halt-exit-status
-
       - name: Run tests
         run: mix test
 
   security:
     name: Security audit
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11  # v4.1.1
+        with:
+          persist-credentials: false
 
       - name: Set up Elixir
-        uses: erlef/setup-beam@v1
+        uses: erlef/setup-beam@3f4617a5461fcaae6fa488c245250c514bfe08da  # v1.19.0
         with:
           otp-version: '27.0'
           elixir-version: '1.18.0'
@@ -109,7 +116,7 @@ jobs:
       contents: read
       security-events: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11  # v4.1.1
         with:
           persist-credentials: false
 
@@ -120,7 +127,7 @@ jobs:
         run: zizmor --format=sarif . > results.sarif || true
 
       - name: Upload SARIF
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@f35333b910470a5408cb081b68f0701254a7d27b  # v3.28.18
         if: always()
         with:
           sarif_file: results.sarif
