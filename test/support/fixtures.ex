@@ -1,4 +1,7 @@
 defmodule Sermo.Fixtures do
+  @moduledoc """
+  Test fixture helpers for creating test data.
+  """
   alias Sermo.Accounts
   alias Sermo.Conversations
 

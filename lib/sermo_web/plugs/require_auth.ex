@@ -1,4 +1,7 @@
 defmodule SermoWeb.Plugs.RequireAuth do
+  @moduledoc """
+  Plug for requiring authenticated users.
+  """
   import Plug.Conn
   import Phoenix.Controller
 

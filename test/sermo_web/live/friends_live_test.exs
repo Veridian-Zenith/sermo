@@ -28,7 +28,7 @@ defmodule SermoWeb.FriendsLiveTest do
     view |> render_hook("search", %{"username" => other.username})
 
     view
-    |> element("[phx-click=\"send-request\"][phx-value-id=\"#{other.id}\"]")
+    |> element(~s([phx-click="send-request"][phx-value-id="#{other.id}"]))
     |> render_click()
 
     assert render(view) =~ "Friend request sent"
@@ -58,7 +58,7 @@ defmodule SermoWeb.FriendsLiveTest do
       |> Plug.Test.init_test_session(%{user_id: user.id})
       |> live(~p"/friends")
 
-    view |> element("[phx-click=\"accept-request\"][phx-value-id=\"#{f.id}\"]") |> render_click()
+    view |> element(~s([phx-click="accept-request"][phx-value-id="#{f.id}"])) |> render_click()
     assert view |> render() =~ "Friend request accepted"
   end
 end

@@ -159,14 +159,14 @@ defmodule Sermo.ConversationsTest do
     end
   end
 
-  describe "is_member?/2" do
+  describe "member?/2" do
     test "returns true for members" do
       alice = create_user()
       bob = create_user()
       {:ok, conv} = Conversations.create_direct_conversation(alice.id, bob.id)
 
-      assert Conversations.is_member?(alice.id, conv.id)
-      assert Conversations.is_member?(bob.id, conv.id)
+      assert Conversations.member?(alice.id, conv.id)
+      assert Conversations.member?(bob.id, conv.id)
     end
 
     test "returns false for non-members" do
@@ -175,7 +175,7 @@ defmodule Sermo.ConversationsTest do
       charlie = create_user(username: "charlie")
       {:ok, conv} = Conversations.create_direct_conversation(alice.id, bob.id)
 
-      refute Conversations.is_member?(charlie.id, conv.id)
+      refute Conversations.member?(charlie.id, conv.id)
     end
   end
 
@@ -185,9 +185,9 @@ defmodule Sermo.ConversationsTest do
       bob = create_user()
       {:ok, conv} = Conversations.create_direct_conversation(alice.id, bob.id)
 
-      assert Conversations.is_member?(bob.id, conv.id)
+      assert Conversations.member?(bob.id, conv.id)
       Conversations.remove_member(conv.id, bob.id)
-      refute Conversations.is_member?(bob.id, conv.id)
+      refute Conversations.member?(bob.id, conv.id)
     end
   end
 

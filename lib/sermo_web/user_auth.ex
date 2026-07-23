@@ -1,4 +1,7 @@
 defmodule SermoWeb.UserAuth do
+  @moduledoc """
+  Plug for user authentication and session management.
+  """
   import Plug.Conn
 
   def init(opts), do: opts

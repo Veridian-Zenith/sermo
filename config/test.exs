@@ -1,5 +1,17 @@
 import Config
 
+enc_key =
+  "sermo-recovery-encryption-key-test-secret-32bytes!!"
+  |> then(fn s ->
+    if byte_size(s) >= 32 do
+      binary_part(s, 0, 32)
+    else
+      raise "test recovery encryption key too short"
+    end
+  end)
+
+config :sermo, :recovery_encryption_key, enc_key
+
 # Configure your database
 #
 # The MIX_TEST_PARTITION environment variable can be used

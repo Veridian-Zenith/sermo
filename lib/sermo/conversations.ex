@@ -1,4 +1,7 @@
 defmodule Sermo.Conversations do
+  @moduledoc """
+  Conversations context module for managing conversations, members, and messages.
+  """
   import Ecto.Query, only: [from: 2]
   alias Sermo.Repo
   alias Sermo.Conversations.{Conversation, ConversationMember, Message}
@@ -85,7 +88,7 @@ defmodule Sermo.Conversations do
     )
   end
 
-  def is_member?(user_id, conversation_id) do
+  def member?(user_id, conversation_id) do
     Repo.exists?(
       from cm in ConversationMember,
         where: cm.user_id == ^user_id and cm.conversation_id == ^conversation_id

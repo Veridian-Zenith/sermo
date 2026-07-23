@@ -57,7 +57,7 @@ defmodule SermoWeb.ChatLive do
   def handle_params(params, _uri, socket) do
     conv_id = params["conversation_id"]
 
-    if conv_id && Conversations.is_member?(socket.assigns.current_user.id, conv_id) do
+    if conv_id && Conversations.member?(socket.assigns.current_user.id, conv_id) do
       messages = Conversations.list_messages(conv_id)
 
       {:noreply,

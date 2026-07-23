@@ -1,4 +1,7 @@
 defmodule Sermo.Accounts do
+  @moduledoc """
+  Accounts context for user management, authentication, and friendships.
+  """
   import Ecto.Query, only: [from: 2]
 
   alias Sermo.Repo

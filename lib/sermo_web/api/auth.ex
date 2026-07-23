@@ -1,4 +1,7 @@
 defmodule SermoWeb.API.Auth do
+  @moduledoc """
+  Plug for API token-based authentication.
+  """
   import Plug.Conn
 
   @token_salt "api-auth-token"

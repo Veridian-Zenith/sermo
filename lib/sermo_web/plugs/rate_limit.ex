@@ -1,4 +1,7 @@
 defmodule SermoWeb.Plugs.RateLimit do
+  @moduledoc """
+  Plug for rate limiting requests by IP address.
+  """
   import Plug.Conn
 
   @table :sermo_rate_limit

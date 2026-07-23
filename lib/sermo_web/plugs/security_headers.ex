@@ -1,4 +1,7 @@
 defmodule SermoWeb.Plugs.SecurityHeaders do
+  @moduledoc """
+  Plug for setting security-related HTTP response headers.
+  """
   import Plug.Conn
 
   def init(opts), do: opts
